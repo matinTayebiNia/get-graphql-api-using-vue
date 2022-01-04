@@ -1,0 +1,34 @@
+autoRefresh({state, dispatch}) {
+        const {token} = state
+        const {exp} = jwtDecode(token)
+        const now = Date.now() / 1000 // exp is represented in seconds since epoch
+        let timeUntilRefresh = exp - now
+        console.log(timeUntilRefresh)
+        // timeUntilRefresh -= (15 * 60) // Refresh 15 minutes before it expires
+        setTimeout(() => dispatch('refreshTokens'), timeUntilRefresh * 1000)
+        dispatch('refreshTask')
+    },
+    async refreshTokens({getters, state, dispatch}) {
+        if (state.isAuth) {
+            let {refreshToken} = await apolloClient.mutate({
+                mutation: REFRESH_TOKEN,
+                variables: {
+                    token: getters.refreshToken,
+                }
+            })
+            console.log(refreshToken)
+            dispatch('REGISTER_AND_LOGIN_USER', refreshToken)
+            localStorage.setItem('apollo-token', refreshToken.access_token)
+            // eslint-disable-next-line no-undef
+            Toast.fire({
+                icon: "success",
+                title: "hey you login again"
+            });
+
+        }
+    },
+    refreshTask({getters, commit}) {
+        if (!getters.authStatus) {
+            commit('LOGOUT_USER')
+        }
+    }
